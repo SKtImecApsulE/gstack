@@ -39,6 +39,21 @@ built-in analyzer, so the site never breaks.
 
 `GET /api/health` returns `{"ok": true, "engine": "claude" | "heuristic"}`.
 
+## Deploy to Railway
+
+The repo ships deploy config: `railway.json` at the repo root points Railway at
+`feasibility-checker/Dockerfile`, which builds a slim image containing only this
+app (none of the monorepo's dev dependencies).
+
+1. Go to [railway.com/new](https://railway.com/new) → **Deploy from GitHub repo**
+   → pick this repo and branch.
+2. Railway detects `railway.json` and builds the Dockerfile automatically.
+3. In the service's **Variables** tab, add `ANTHROPIC_API_KEY` for AI verdicts
+   (optional — the heuristic engine answers without it).
+4. In **Settings → Networking**, click **Generate Domain** to get a public URL.
+
+Health checks hit `/api/health`. The server reads Railway's `PORT` automatically.
+
 ## Files
 
 - `server.ts` — Bun server: static frontend + `/api/check` + Claude integration
