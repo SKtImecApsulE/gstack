@@ -31,9 +31,13 @@ async function analyzeWithClaude(request: string): Promise<Verdict> {
         'Respond with ONLY a JSON object, no markdown fences, with exactly these keys: ' +
         '"verdict" (one of "POSSIBLE", "NOT_POSSIBLE", "UNCERTAIN"), ' +
         '"confidence" (integer 0-100), ' +
-        '"reasoning" (2-4 plain sentences explaining the verdict in practical terms). ' +
+        '"reasoning" (2-4 plain sentences explaining the verdict in practical terms), ' +
+        '"advice" (2-4 sentences of genuinely useful guidance: if POSSIBLE, the concrete first steps; ' +
+        'if NOT_POSSIBLE, name the closest realistic alternative that serves the same underlying goal; ' +
+        'if UNCERTAIN, what would have to change or be true for it to work). ' +
         'Judge physical, logical, technological, and practical feasibility. ' +
-        'Be decisive: reserve UNCERTAIN for genuinely open questions.',
+        'Be decisive: reserve UNCERTAIN for genuinely open questions. ' +
+        'For absurd requests, stay good-humored but give real physics and a real alternative.',
       messages: [{ role: 'user', content: request }],
     }),
   });
@@ -53,6 +57,7 @@ async function analyzeWithClaude(request: string): Promise<Verdict> {
     verdict,
     confidence: Math.min(100, Math.max(0, Math.round(Number(parsed.confidence) || 50))),
     reasoning: String(parsed.reasoning || 'No reasoning provided.'),
+    advice: String(parsed.advice || ''),
     engine: 'claude',
   };
 }
