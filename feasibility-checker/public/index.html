@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Feasibility Checker</title>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #141925;
+    --panel-2: #1b2231;
+    --text: #e8ecf4;
+    --muted: #8b94a7;
+    --accent: #6c8cff;
+    --green: #34d399;
+    --red: #f87171;
+    --amber: #fbbf24;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: radial-gradient(1200px 600px at 50% -10%, #1a2340 0%, var(--bg) 55%);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 20px;
+  }
+  .wrap { width: 100%; max-width: 640px; }
+  h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; text-align: center; }
+  h1 .spark { color: var(--accent); }
+  .sub { color: var(--muted); text-align: center; margin: 10px 0 32px; font-size: 1rem; }
+  .card {
+    background: var(--panel);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  textarea {
+    width: 100%;
+    min-height: 110px;
+    resize: vertical;
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 1rem;
+    font-family: inherit;
+    line-height: 1.5;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  textarea:focus { border-color: var(--accent); }
+  .row { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; gap: 12px; }
+  .hint { color: var(--muted); font-size: 0.82rem; }
+  button {
+    background: var(--accent);
+    color: #0b0e14;
+    font-weight: 600;
+    font-size: 1rem;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 26px;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.15s;
+  }
+  button:hover { opacity: 0.9; }
+  button:active { transform: scale(0.98); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; justify-content: center; }
+  .chip {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.14);
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 999px;
+  }
+  .chip:hover { color: var(--text); border-color: var(--accent); opacity: 1; }
+  #result { margin-top: 22px; display: none; }
+  #result.show { display: block; animation: rise 0.25s ease-out; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .verdict-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .badge {
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+    padding: 6px 16px;
+    border-radius: 999px;
+  }
+  .badge.possible { background: rgba(52,211,153,0.15); color: var(--green); border: 1px solid rgba(52,211,153,0.4); }
+  .badge.not_possible { background: rgba(248,113,113,0.15); color: var(--red); border: 1px solid rgba(248,113,113,0.4); }
+  .badge.uncertain { background: rgba(251,191,36,0.15); color: var(--amber); border: 1px solid rgba(251,191,36,0.4); }
+  .conf { color: var(--muted); font-size: 0.88rem; }
+  .meter { height: 6px; background: var(--panel-2); border-radius: 999px; overflow: hidden; margin: 10px 0 14px; }
+  .meter > div { height: 100%; border-radius: 999px; transition: width 0.5s ease; }
+  .reasoning { color: var(--text); line-height: 1.6; font-size: 0.97rem; }
+  .engine { margin-top: 12px; color: var(--muted); font-size: 0.78rem; }
+  .error { color: var(--red); margin-top: 14px; font-size: 0.92rem; display: none; }
+  .spinner {
+    display: inline-block; width: 16px; height: 16px;
+    border: 2px solid rgba(11,14,20,0.3); border-top-color: #0b0e14;
+    border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: -3px; margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  footer { margin-top: auto; padding-top: 40px; color: var(--muted); font-size: 0.78rem; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1><span class="spark">✦</span> Feasibility Checker</h1>
+    <p class="sub">Type any request or goal. Get an instant verdict: possible or not.</p>
+
+    <div class="card">
+      <textarea id="request" maxlength="2000"
+        placeholder="e.g. Build a mobile app for my bakery in 3 months&#10;e.g. Create a perpetual motion machine"></textarea>
+      <div class="row">
+        <span class="hint">Enter to submit · Shift+Enter for newline</span>
+        <button id="check">Check feasibility</button>
+      </div>
+      <div class="error" id="error"></div>
+    </div>
+
+    <div class="examples" id="examples">
+      <button class="chip">Build a website in one weekend</button>
+      <button class="chip">Travel faster than light</button>
+      <button class="chip">Learn Spanish in 6 months</button>
+      <button class="chip">Bring dinosaurs back to life</button>
+    </div>
+
+    <div class="card" id="result">
+      <div class="verdict-head">
+        <span class="badge" id="badge"></span>
+        <span class="conf" id="conf"></span>
+      </div>
+      <div class="meter"><div id="meterFill"></div></div>
+      <p class="reasoning" id="reasoning"></p>
+      <p class="engine" id="engine"></p>
+    </div>
+  </div>
+  <footer>Feasibility Checker · verdicts are informational, not professional advice</footer>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const input = $('request'), btn = $('check'), result = $('result'), errBox = $('error');
+
+  const LABELS = { POSSIBLE: 'Possible', NOT_POSSIBLE: 'Not possible', UNCERTAIN: 'Uncertain' };
+  const COLORS = { POSSIBLE: 'var(--green)', NOT_POSSIBLE: 'var(--red)', UNCERTAIN: 'var(--amber)' };
+
+  async function check() {
+    const text = input.value.trim();
+    errBox.style.display = 'none';
+    if (!text) { showError('Type a request first.'); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Checking…';
+    result.classList.remove('show');
+
+    try {
+      const res = await fetch('/api/check', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ request: text }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Server error ' + res.status);
+      render(data);
+    } catch (err) {
+      showError(err.message || 'Something went wrong. Try again.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Check feasibility';
+    }
+  }
+
+  function render(v) {
+    const key = v.verdict.toLowerCase();
+    $('badge').textContent = LABELS[v.verdict] || v.verdict;
+    $('badge').className = 'badge ' + key;
+    $('conf').textContent = v.confidence + '% confidence';
+    const fill = $('meterFill');
+    fill.style.width = v.confidence + '%';
+    fill.style.background = COLORS[v.verdict] || 'var(--accent)';
+    $('reasoning').textContent = v.reasoning;
+    $('engine').textContent = v.engine === 'claude'
+      ? 'Verdict by Claude AI'
+      : 'Verdict by built-in analyzer (set ANTHROPIC_API_KEY on the server for AI verdicts)';
+    result.classList.add('show');
+  }
+
+  function showError(msg) { errBox.textContent = msg; errBox.style.display = 'block'; }
+
+  btn.addEventListener('click', check);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); check(); }
+  });
+  $('examples').addEventListener('click', (e) => {
+    if (e.target.classList.contains('chip')) {
+      input.value = e.target.textContent;
+      check();
+    }
+  });
+</script>
+</body>
+</html>
