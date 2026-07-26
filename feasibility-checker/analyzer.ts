@@ -169,13 +169,29 @@ export function analyzeHeuristic(request: string): Verdict {
   }
 
   // Default: most human requests are possible with enough time and resources.
+  // Tailor the callout to the riskiest signal in the request.
+  const hasDeadline =
+    /\b(in|within|by)\s+(\d+\s*(hour|day|week|month|year)|tomorrow|tonight|next\s+(week|month|year))/i.test(text);
+  const hasBudget = /\$|£|€|\b(budget|cheap|cheaply|free|no\s+money|afford)\b/i.test(text);
+
+  let reasoning =
+    'Verdict: doable. Nothing here breaks physics, logic, or the limits of current technology, ' +
+    'which puts it in the category of things people actually pull off. The real question is not ' +
+    '"can it be done" but "will the work get done."';
+  if (hasDeadline) {
+    reasoning +=
+      ' Your timeline is the riskiest part: goals like this usually survive contact with reality, but schedules rarely do.';
+  } else if (hasBudget) {
+    reasoning +=
+      ' Budget is the constraint to watch: price the honest version before you start, because cheap plans tend to cost double.';
+  }
+
   return {
     verdict: 'POSSIBLE',
-    confidence: 65,
-    reasoning:
-      'Nothing in this request violates physics, logic, or known hard limits. Most goals like this are achievable with the right time, resources, and plan. (Heuristic engine — set ANTHROPIC_API_KEY for a deeper AI assessment.)',
+    confidence: 70,
+    reasoning,
     advice:
-      'Break it into the first three concrete steps, put a date on the first one, and check whether anyone else has done something similar — their path is your shortcut.',
+      'Write down the first three concrete steps and put a date on step one. Then find one person or project that has already done something like this: copying a proven path beats inventing your own.',
     engine: 'heuristic',
   };
 }
